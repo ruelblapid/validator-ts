@@ -1,5 +1,5 @@
 {
-	"name": "@rbl/validator-ts",
+	"name": "@rbl-dev/validator-ts",
 	"version": "1.0.0",
 	"description": "A Laravel-inspired class-based pipe validator for TypeScript applications.",
 	"main": "dist/index.js",
@@ -7,6 +7,9 @@
 	"files": [
 		"dist"
 	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"clean": "rimraf dist",
 		"prebuild": "npm run clean",
