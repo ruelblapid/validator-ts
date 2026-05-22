@@ -1,0 +1,27 @@
+# Dependency directories
+node_modules/
+
+# Production builds
+dist/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# IDE Configurations
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Testing coverage and cache
+.vitest/
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db

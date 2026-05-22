@@ -1,0 +1,35 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x] # Tests your code across multiple active Node environments
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js v${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.matrix.node-version }}
+          cache: 'npm' # Speeds up builds by caching node_modules
+
+      - name: Install Package Dependencies
+        run: npm ci # Performs a clean, deterministic install based strictly on package-lock.json
+
+      - name: Run Code Compilation Build Check
+        run: npm run build
+
+      - name: Execute Vitest Testing Automation
+        run: npm run test
