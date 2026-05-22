@@ -5,3 +5,7 @@ export interface ValidationRule {
 }
 
 export type CustomRuleClosureFactory = (params: string[]) => ValidationRule;
+
+export interface ImplicitRule extends ValidationRule {
+	isImplicit: true;
+}

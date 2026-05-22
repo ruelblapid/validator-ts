@@ -25,3 +25,5 @@ coverage/
 # OS files
 .DS_Store
 Thumbs.db
+# NPM Auth Tokens
+.npmrc
