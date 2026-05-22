@@ -251,6 +251,83 @@ if (validator.fails()) {
 }
 ```
 
+## 🚀 Full-Stack Usage Examples
+
+### 1. Node.js Backend API Route (Express Example)
+
+Because the core engine supports asynchronous checks, you can use `@rbl/validator-ts` to secure your backend API endpoints. This example shows how to validate incoming request data, use an asynchronous database check, and return structured errors exactly like a Laravel API controller:
+
+```typescript
+import express, { Request, Response } from 'express';
+import { Validator } from '@rbl/validator-ts';
+import { UniqueEmailRule } from './rules/UniqueEmailRule'; // Your custom async rule
+
+const app = express();
+app.use(express.json());
+
+app.post('/api/register', async (req: Request, res: Response) => {
+  // 1. Define your full-stack shared validation rules layout
+  const rules = {
+    'user.profile.username': 'bail|required|min:3',
+    'email': ['required', 'email', new UniqueEmailRule()],
+    'password': 'required|min:8'
+  };
+
+  // 2. Custom error messages with dynamic token replacement attributes
+  const customMessages = {
+    'user.profile.username.min': 'The username must be at least :min characters long.',
+    'email.required': 'An email address is strictly required to sign up.'
+  };
+
+  // 3. Initialize the style validation instance container
+  const validator = Validator.make(req.body, rules, customMessages);
+
+  // 4. Trigger the asynchronous verification pipeline sequence
+  await validator.validate();
+
+  // 5. Intercept failures and return an immediate 422 Unprocessable Entity payload
+  if (validator.fails()) {
+    return res.status(422).json({
+      message: 'The given data was invalid.',
+      errors: validator.getErrors() // Returns standard structured error maps
+    });
+  }
+
+  // 6. Execution proceeds safely if all validation parameters pass
+  try {
+    // Process user registration model database inserts here...
+    return res.status(201).json({ message: 'User registered successfully!' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.listen(3000, () => console.log('API Server running on port 3000'));
+```
+
+---
+
+### 2. Standalone Synchronous Usage
+
+If you are running a script or validating data locally on the fly without complex asynchronous database checks, use the instant execution method:
+
+```typescript
+import { Validator } from '@rbl/validator-ts';
+
+const localData = { username: 'jo' };
+const localRules = { username: 'required|min:5' };
+
+const validator = Validator.make(localData, localRules);
+
+// 🚀 Execute calculations immediately without using async/await keywords
+validator.validateSync();
+
+if (validator.fails()) {
+  console.log(validator.getError('username'));
+  // Output: ['The username must be at least 5 characters.']
+}
+```
+
 ---
 
 ## 📜 License
