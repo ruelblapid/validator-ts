@@ -6,7 +6,7 @@ import { Validator } from '../src/Validator.js';
 import { useReactFormValidator } from '../src/integrations/react.js';
 import { useVueFormValidator } from '../src/integrations/vue.js';
 
-describe('@rbl/laravel-validator-ts Evaluation Suite', () => {
+describe('@rbl/validator-ts Evaluation Suite', () => {
 	// =========================================================================
 	// CORE ENGINE & BUILT-IN RULES TESTS
 	// =========================================================================
@@ -97,13 +97,14 @@ describe('@rbl/laravel-validator-ts Evaluation Suite', () => {
 				{ content: 'required|min:5' }
 			);
 
-			// Fails initially because length is less than 5
+			await nextTick();
+
 			expect(fails.value).toBe(true);
 
-			// Simulate user data entry mutating the Vue proxy directly
+			// Mutate the proxy
 			form.content = 'long_enough_string';
 
-			// Wait for Vue's virtual DOM / computed properties to cycle
+			// Wait for the change to ripple through the tracking node tree
 			await nextTick();
 
 			expect(passes.value).toBe(true);

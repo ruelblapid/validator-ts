@@ -6,7 +6,7 @@ import { EmailRule } from './rules/EmailRule.js';
 import { MaxRule } from './rules/MaxRule.js';
 import { MinRule } from './rules/MinRule.js';
 import { RequiredRule } from './rules/RequiredRule.js';
-
+import { dataGet } from './utils/data';
 export class Validator {
 	private errors: Record<string, string[]> = {};
 	private normalizedRules: Record<string, (string | ValidationRule)[]> = {};
@@ -107,6 +107,149 @@ export class Validator {
 				if (shouldBail && ruleFailed) break;
 			}
 		}
+	}
+
+	public async validate(): Promise<boolean> {
+		this.errors = {};
+		const validationPromises: Promise<void>[] = [];
+
+		for (const [attribute, attributeRules] of Object.entries(
+			this.normalizedRules
+		)) {
+			// 🚀 Fix: Dynamically locate deeply nested object keys using dot notation
+			const value = dataGet(this.data, attribute);
+			const isEmpty =
+				value === undefined || value === null || value === '';
+
+			// We handle bails in an isolation chain block per field
+			validationPromises.push(
+				(async () => {
+					let shouldBail = false;
+
+					for (const rawRule of attributeRules) {
+						if (rawRule === 'bail') {
+							shouldBail = true;
+							continue;
+						}
+
+						const rule =
+							typeof rawRule === 'string'
+								? this.resolveStringRule(rawRule)
+								: rawRule;
+						if (!rule) continue;
+
+						const isImplicit = (rule as any).isImplicit === true;
+						if (isEmpty && !isImplicit) continue;
+
+						let ruleFailed = false;
+						const ruleName =
+							typeof rawRule === 'string'
+								? rawRule.split(':')[0]
+								: rule.constructor.name
+										.toLowerCase()
+										.replace('rule', '');
+
+						// Wrap execution safely inside a Promise to manage potential async rules
+						await Promise.resolve(
+							rule.validate(
+								attribute,
+								value,
+								(defaultMessage) => {
+									ruleFailed = true;
+									const customKeyWithAttr = `${attribute}.${ruleName}`;
+									const finalMessagePattern =
+										this.customMessages[
+											customKeyWithAttr
+										] ||
+										this.customMessages[ruleName] ||
+										defaultMessage;
+									const localizedMessage =
+										finalMessagePattern.replace(
+											/:attribute/g,
+											attribute
+										);
+									this.addError(attribute, localizedMessage);
+								}
+							)
+						);
+
+						if (shouldBail && ruleFailed) break;
+					}
+				})()
+			);
+		}
+
+		// Await execution blocks concurrently across all fields
+		await Promise.all(validationPromises);
+		return this.passes();
+	}
+
+	/**
+	 * Run the validation process synchronously across all rules.
+	 * Automatically skips any complex asynchronous rule objects.
+	 */
+	public validateSync(): boolean {
+		this.errors = {};
+
+		for (const [attribute, attributeRules] of Object.entries(
+			this.normalizedRules
+		)) {
+			const value = dataGet(this.data, attribute);
+			const isEmpty =
+				value === undefined || value === null || value === '';
+			let shouldBail = false;
+
+			for (const rawRule of attributeRules) {
+				if (rawRule === 'bail') {
+					shouldBail = true;
+					continue;
+				}
+
+				const rule =
+					typeof rawRule === 'string'
+						? this.resolveStringRule(rawRule)
+						: rawRule;
+				if (!rule) continue;
+
+				// Skip async promise rule instances safely in synchronous mode
+				if (
+					//@ts-ignore
+					typeof rule.validate(attribute, value, () => {})?.then ===
+					'function'
+				) {
+					continue;
+				}
+
+				const isImplicit = (rule as any).isImplicit === true;
+				if (isEmpty && !isImplicit) continue;
+
+				let ruleFailed = false;
+				const ruleName =
+					typeof rawRule === 'string'
+						? rawRule.split(':')[0]
+						: rule.constructor.name
+								.toLowerCase()
+								.replace('rule', '');
+
+				rule.validate(attribute, value, (defaultMessage) => {
+					ruleFailed = true;
+					const customKeyWithAttr = `${attribute}.${ruleName}`;
+					const finalMessagePattern =
+						this.customMessages[customKeyWithAttr] ||
+						this.customMessages[ruleName] ||
+						defaultMessage;
+					const localizedMessage = finalMessagePattern.replace(
+						/:attribute/g,
+						attribute
+					);
+					this.addError(attribute, localizedMessage);
+				});
+
+				if (shouldBail && ruleFailed) break;
+			}
+		}
+
+		return this.passes();
 	}
 
 	private resolveStringRule(ruleString: string): ValidationRule | null {
